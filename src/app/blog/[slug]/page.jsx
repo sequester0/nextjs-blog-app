@@ -2,44 +2,50 @@ import styles from './singlePost.module.css';
 import Image from "next/image";
 import PostUser from "@/components/postUser/postUser";
 import {Suspense} from "react";
-import {getPost} from "@/lib/api";
+import {getPost} from "@/lib/data";
 
 // Fetch data with API
-// const getData = async (slug) => {
-//   const res = await fetch(`https://jsonplaceholder.typicode.com/posts/${slug}`);
-//
-//   if (!res.ok) {
-//     throw new Error('Network response was not ok');
-//   }
-//
-//   return res.json();
-// }
+const getData = async (slug) => {
+  const res = await fetch(`http://localhost:3000/api/blog/${slug}`);
+
+  if (!res.ok) {
+    throw new Error('Network response was not ok');
+  }
+
+  return res.json();
+}
+
+export const generateMetadata = async ({ params }) => {
+  const { slug } = params;
+
+  const post = await getPost(slug);
+
+  return {
+    title: post.title,
+    description: post.desc,
+  };
+};
 
 const SinglePostPage = async ({params}) => {
 
   const {slug} = params;
-  // const post = await getData(slug);
-  const post = await getPost(slug);
+  const post = await getData(slug);
+  // const post = await getPost([slug]);
   return (
     <div className={styles.container}>
-      <div className={styles.imageContainer}>
-        <Image
-          src="https://images.pexels.com/photos/15760122/pexels-photo-15760122/free-photo-of-kent-yol-insanlar-fransa.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
-          alt=""
-          fill
-          className={styles.image}
-        />
-      </div>
+      {post.img && (
+          <div className={styles.imageContainer}>
+            <Image
+                src={post.img}
+                alt=""
+                fill
+                className={styles.image}
+            />
+          </div>
+      )}
       <div className={styles.textContainer}>
-        <h1 className={styles.title}>{post?.title}</h1>
+        <h1 className={styles.title}>{post.title}</h1>
         <div className={styles.detail}>
-          <Image
-            className={styles.avatar}
-            src="https://images.pexels.com/photos/15760122/pexels-photo-15760122/free-photo-of-kent-yol-insanlar-fransa.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
-            alt=""
-            width={50}
-            height={50}
-          />
           {post && (
             <Suspense fallback={<div>Loading...</div>}>
               <PostUser userId={post.userId}/>
@@ -47,11 +53,11 @@ const SinglePostPage = async ({params}) => {
           )}
           <div className={styles.detailText}>
             <span className={styles.detailTitle}>Published</span>
-            <span className={styles.detailValue}>01.01.2024</span>
+            <span className={styles.detailValue}>{post.createdAt.toString().slice(0, 10)}</span>
           </div>
         </div>
         <div className={styles.content}>
-          {post.body}
+          {post.description}
         </div>
       </div>
     </div>
