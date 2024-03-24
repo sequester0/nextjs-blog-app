@@ -1,9 +1,10 @@
 "use server";
 
 import {connectToDb} from "@/lib/utils";
-import {Post} from "@/lib/model";
+import {Post, User} from "@/lib/model";
 import {revalidatePath} from "next/cache";
 import {signIn, signOut} from "@/lib/auth";
+import bcrypt from "bcrypt";
 
 export const addPost = async (formData) => {
   const { title, description, slug, userId } = Object.fromEntries(formData);
@@ -40,6 +41,56 @@ export const deletePost = async (formData) => {
   } catch (err) {
     console.log(err);
     return { error: "Failed to connect to the database" };
+  }
+}
+
+export const register = async (previousState, formData) => {
+  const { username, email, img, password, passwordRepeat } = Object.fromEntries(formData);
+
+  if (password !== passwordRepeat) {
+    return { error: "Passwords do not match" };
+  }
+
+  try {
+    await connectToDb();
+
+    const user = await User.findOne({userName: username});
+
+    if (user) {
+      return { error: "Username already exists" };
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const newUser = new User({
+      userName: username,
+      email,
+      password: hashedPassword,
+      img
+    });
+    await newUser.save();
+    return { success: "User registered successfully" };
+  } catch (e) {
+    console.log(e);
+    return { error: "Something went wrong!" };
+  }
+}
+
+export const login = async (previousState, formData) => {
+  const { username, password } = Object.fromEntries(formData);
+
+  try {
+    await signIn("credentials", {
+      username,
+      password
+    });
+  } catch (e) {
+    if (e.message.includes("credentialssignin")) {
+      return { error: "Invalid username or password" };
+    }
+
+    throw e
   }
 }
 
