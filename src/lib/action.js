@@ -6,7 +6,7 @@ import {revalidatePath} from "next/cache";
 import {signIn, signOut} from "@/lib/auth";
 import bcrypt from "bcrypt";
 
-export const addPost = async (formData) => {
+export const addPost = async (prevState, formData) => {
   const { title, description, slug, userId } = Object.fromEntries(formData);
 
   try {
@@ -22,6 +22,7 @@ export const addPost = async (formData) => {
     await newPost.save();
     console.log("Post saved successfully");
     revalidatePath("/blog");
+    revalidatePath("/admin");
   } catch (err) {
     console.log(err);
     return { error: "Failed to connect to the database" };
@@ -38,6 +39,50 @@ export const deletePost = async (formData) => {
 
     console.log("deleted successfully");
     revalidatePath("/blog");
+    revalidatePath("/admin");
+  } catch (err) {
+    console.log(err);
+    return { error: "Failed to connect to the database" };
+  }
+}
+
+export const addUser = async (prevState, formData) => {
+  const { username, email, password, img, isAdmin } = Object.fromEntries(formData);
+
+  try {
+    await connectToDb();
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const newUser = new User({
+      userName: username,
+      email,
+      password: hashedPassword,
+      img,
+      isAdmin
+    });
+
+    await newUser.save();
+    console.log("Post saved successfully");
+    revalidatePath("/admin");
+  } catch (err) {
+    console.log(err);
+    return { error: "Failed to connect to the database" };
+  }
+}
+
+export const deleteUser = async (formData) => {
+  const { id } = Object.fromEntries(formData);
+
+  try {
+    await connectToDb();
+
+    await Post.deleteMany({userId: id});
+    await User.findByIdAndDelete(id);
+
+    console.log("deleted successfully");
+    revalidatePath("/admin");
   } catch (err) {
     console.log(err);
     return { error: "Failed to connect to the database" };
